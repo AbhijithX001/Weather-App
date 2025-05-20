@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interactive Weather App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: linear-gradient(to right, #74ABE2, #5563DE);
+      color: #fff;
+    }
+    .weather-container {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2rem;
+      border-radius: 1rem;
+      width: 320px;
+      text-align: center;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+    }
+    .weather-container h1 {
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+    }
+    form {
+      display: flex;
+      margin-bottom: 1rem;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 0.5rem;
+      border: none;
+      border-radius: 0.5rem 0 0 0.5rem;
+      font-size: 1rem;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      border: none;
+      background: #ff9800;
+      color: #fff;
+      font-size: 1rem;
+      border-radius: 0 0.5rem 0.5rem 0;
+      cursor: pointer;
+    }
+    .info {
+      margin-top: 1rem;
+    }
+    .info img {
+      width: 80px;
+      height: 80px;
+    }
+    .toggle {
+      margin-top: 1rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      text-decoration: underline;
+    }
+    .loader {
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top: 4px solid #fff;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 1rem auto;
+      display: none;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .error {
+      color: #ffb3b3;
+      margin-top: 1rem;
+    }
+    @media (max-width: 360px) {
+      .weather-container { width: 90%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="weather-container">
+    <h1>Weather App</h1>
+    <form id="search-form">
+      <input type="text" id="city-input" placeholder="Enter city name" required />
+      <button type="submit">Search</button>
+    </form>
+    <div class="loader" id="loader"></div>
+    <div class="info" id="weather-info" style="display: none;">
+      <h2 id="city-name"></h2>
+      <img id="weather-icon" src="" alt="Weather Icon" />
+      <p id="description"></p>
+      <p><span id="temp"></span>°<span id="unit">C</span></p>
+      <p>Humidity: <span id="humidity"></span>%</p>
+      <div class="toggle" id="toggle-unit">Switch to °F</div>
+    </div>
+    <div class="error" id="error-msg"></div>
+  </div>
+
+  <script>
+    const apiKey = 'c279fedc8595ca448a4f5f8944b8e36a';
+    const form = document.getElementById('search-form');
+    const cityInput = document.getElementById('city-input');
+    const loader = document.getElementById('loader');
+    const infoEl = document.getElementById('weather-info');
+    const errorEl = document.getElementById('error-msg');
+    const cityNameEl = document.getElementById('city-name');
+    const iconEl = document.getElementById('weather-icon');
+    const descEl = document.getElementById('description');
+    const tempEl = document.getElementById('temp');
+    const unitEl = document.getElementById('unit');
+    const humidityEl = document.getElementById('humidity');
+    const toggleEl = document.getElementById('toggle-unit');
+    let currentTempC;
+    
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const city = cityInput.value.trim();
+      if (!city) return;
+      fetchWeather(city);
+    });
+
+    toggleEl.addEventListener('click', () => {
+      if (!currentTempC) return;
+      if (unitEl.textContent === 'C') {
+        const tempF = (currentTempC * 9/5 + 32).toFixed(1);
+        tempEl.textContent = tempF;
+        unitEl.textContent = 'F';
+        toggleEl.textContent = 'Switch to °C';
+      } else {
+        tempEl.textContent = currentTempC.toFixed(1);
+        unitEl.textContent = 'C';
+        toggleEl.textContent = 'Switch to °F';
+      }
+    });
+
+    function fetchWeather(city) {
+      showLoader(true);
+      clearError();
+      infoEl.style.display = 'none';
+
+      const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=metric&appid=${apiKey}`;
+      fetch(url)
+        .then(res => {
+          if (!res.ok) throw new Error('City not found');
+          return res.json();
+        })
+        .then(data => updateUI(data))
+        .catch(err => showError(err.message))
+        .finally(() => showLoader(false));
+    }
+
+    function updateUI(data) {
+      cityNameEl.textContent = `${data.name}, ${data.sys.country}`;
+      descEl.textContent = data.weather[0].description;
+      currentTempC = data.main.temp;
+      tempEl.textContent = currentTempC.toFixed(1);
+      unitEl.textContent = 'C';
+      humidityEl.textContent = data.main.humidity;
+      iconEl.src = `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
+      iconEl.alt = data.weather[0].description;
+      infoEl.style.display = 'block';
+    }
+
+    function showLoader(visible) {
+      loader.style.display = visible ? 'block' : 'none';
+    }
+
+    function showError(msg) {
+      errorEl.textContent = msg;
+    }
+
+    function clearError() {
+      errorEl.textContent = '';
+    }
+  </script>
+</body>
+</html>
